@@ -2,117 +2,198 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Annadata | Food Forensics</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        :root { --emerald: #10b981; --slate-900: #0f172a; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
+        .tab-btn.active { border-bottom: 3px solid var(--emerald); color: #065f46; opacity: 1; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .risk-banner { transition: all 0.3s ease; }
+    </style>
 </head>
 <body class="flex min-h-screen">
 
-    <aside class="sidebar hidden lg:flex flex-col">
+    <aside class="hidden lg:flex flex-col w-64 p-8 bg-white border-r border-slate-100 h-screen sticky top-0">
         <div class="flex items-center gap-3 mb-12">
-            <div class="logo-icon"><i data-lucide="shield-check"></i></div>
-            <div>
-                <h1 class="text-xl font-extrabold tracking-tight text-slate-900 leading-none">ANNADATA</h1>
-                <span class="text-[10px] font-bold text-emerald-600 tracking-widest uppercase">Forensic Engine</span>
-            </div>
+            <div class="bg-emerald-600 p-2 rounded-xl text-white"><i data-lucide="shield-check"></i></div>
+            <h1 class="text-xl font-extrabold text-slate-900 leading-none">ANNADATA</h1>
         </div>
-
-        <nav class="space-y-2 flex-1">
-            <button onclick="switchTab('scanner')" id="btn-scanner" class="nav-btn active w-full flex items-center gap-4 p-4 text-sm font-bold">
-                <i data-lucide="microscope" class="w-5 h-5"></i> Integrity Scanner
-            </button>
-            <button onclick="switchTab('flavordb')" id="btn-flavordb" class="nav-btn w-full flex items-center gap-4 p-4 text-sm font-bold">
-                <i data-lucide="flask-round" class="w-5 h-5"></i> FlavorDB™ Alts
-            </button>
-            <button onclick="switchTab('map')" id="btn-map" class="nav-btn w-full flex items-center gap-4 p-4 text-sm font-bold">
-                <i data-lucide="map-pin" class="w-5 h-5"></i> Regional Map
+        <nav class="space-y-2">
+            <button class="w-full flex items-center gap-4 p-4 text-sm font-bold rounded-2xl bg-emerald-50 text-emerald-700">
+                <i data-lucide="microscope"></i> Integrity Scanner
             </button>
         </nav>
-
-        <div class="mt-auto p-4 bg-slate-50 rounded-3xl flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">AD</div>
-            <div class="text-xs">
-                <p class="font-bold text-slate-900">Officer Admin</p>
-                <p class="text-slate-400">Delhi Cluster</p>
-            </div>
-        </div>
     </aside>
 
     <main class="flex-1 p-6 lg:p-12 overflow-y-auto">
-        <header class="flex justify-between items-center mb-10">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-400">
-                <span>Portal</span> <i data-lucide="chevron-right" class="w-4 h-4"></i> <span id="current-page" class="text-emerald-600 font-bold">Scanner</span>
+        <div class="mb-10">
+            <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight">Molecular Integrity Audit</h2>
+            <p class="text-slate-500 font-medium">RecipeDB benchmarks + FlavorDB molecular pairing.</p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-6 self-start">
+                <div class="space-y-2">
+                    <label class="text-[10px] uppercase font-black text-slate-400">Dish Blueprint</label>
+                    <select id="dishSelect" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold focus:border-emerald-500 outline-none">
+                        <option value="">Fetching Data...</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] uppercase font-black text-slate-400">Vendor Price (₹)</label>
+                    <input type="number" id="priceInput" placeholder="Price on menu" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold focus:border-emerald-500 outline-none">
+                </div>
+                <button onclick="analyze()" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl hover:bg-emerald-600 transition-all">START AUDIT</button>
             </div>
-            <div class="bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm flex items-center gap-3 text-xs font-bold">
-                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                MARKET INDEX: LIVE
-            </div>
-        </header>
 
-        <section id="scanner" class="tab-view active">
-            <div class="mb-10">
-                <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Molecular Integrity Audit</h2>
-                <p class="text-slate-500 font-medium">Detecting economic adulteration via ingredient-inflation mapping.</p>
-            </div>
-
-            <div class="grid lg:grid-cols-2 gap-8">
-                <div class="card space-y-6">
-                    <div class="space-y-2">
-                        <label class="text-[10px] uppercase tracking-widest font-extrabold text-slate-400">Select Dish Blueprint</label>
-                        <select id="dishSelect" onchange="updateHint()" class="w-full">
-                            <option value="">Fetching RecipeDB...</option>
-                        </select>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="text-[10px] uppercase tracking-widest font-extrabold text-slate-400">Vendor Price (₹)</label>
-                        <input type="number" id="priceInput" placeholder="Price offered by vendor" class="w-full big-input">
-                    </div>
-
-                    <div class="p-4 bg-emerald-50 rounded-2xl flex items-center gap-3 text-emerald-700 text-sm">
-                        <i data-lucide="info" class="w-5 h-5"></i>
-                        <p class="font-medium">Market Honest Cost: <span id="hintCost" class="font-extrabold text-lg">₹--</span></p>
-                    </div>
-
-                    <button onclick="analyze()" class="w-full primary-btn">START AUDIT</button>
+            <div id="resultCard" class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl min-h-[550px] flex flex-col overflow-hidden">
+                <div id="emptyState" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                    <i data-lucide="scan-face" class="w-16 h-16 text-slate-200 mb-4"></i>
+                    <p class="text-slate-400 font-medium">Awaiting molecular deconstruction...</p>
                 </div>
 
-                <div id="resultCard" class="card flex flex-col justify-center items-center text-center">
-                    <div id="emptyState" class="space-y-4">
-                        <i data-lucide="scan-face" class="w-16 h-16 mx-auto text-slate-200"></i>
-                        <p class="text-slate-400 font-medium">Ready for Forensic Scan</p>
-                    </div>
+                <div id="scanLoader" class="hidden flex-1 flex flex-col items-center justify-center p-8">
+                    <div class="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
 
-                    <div id="scanLoader" class="hidden space-y-4">
-                        <div class="w-12 h-12 border-4 border-slate-100 border-t-emerald-600 rounded-full animate-spin mx-auto"></div>
-                        <p class="font-bold text-slate-600 tracking-tight">Cross-referencing Ingredient Index...</p>
-                    </div>
+                <div id="resultTabs" class="hidden flex border-b border-slate-100">
+                    <button onclick="switchTab('report')" id="tabBtnReport" class="tab-btn active flex-1 py-4 text-[10px] font-black uppercase tracking-widest">Audit Report</button>
+                    <button onclick="switchTab('flavor')" id="tabBtnFlavor" class="tab-btn flex-1 py-4 text-[10px] font-black uppercase tracking-widest opacity-40">Molecular Solutions</button>
+                </div>
 
-                    <div id="analysisContent" class="hidden w-full text-left space-y-6">
-                        <div id="verdictBanner" class="p-6 rounded-3xl flex gap-4 items-center">
-                            <div id="vIcon" class="w-12 h-12 rounded-full bg-white flex items-center justify-center font-black"></div>
-                            <div>
-                                <h3 id="vTitle" class="font-extrabold text-xl">---</h3>
-                                <p id="vDesc" class="text-xs font-medium opacity-80">---</p>
+                <div id="analysisContent" class="hidden p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+                    <div id="reportView" class="space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-5 bg-slate-50 rounded-3xl text-center border">
+                                <span class="text-[9px] font-black text-slate-400 uppercase">Integrity Score</span>
+                                <div id="integrityVal" class="text-3xl font-black mt-1">--</div>
+                            </div>
+                            <div class="p-5 bg-slate-50 rounded-3xl text-center border">
+                                <span class="text-[9px] font-black text-slate-400 uppercase">Risk Level</span>
+                                <div id="riskVal" class="text-3xl font-black mt-1">--</div>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <h4 class="text-[10px] uppercase tracking-widest font-black text-slate-400">Molecular Breakdown</h4>
-                            <div id="breakdownUl" class="space-y-2"></div>
+                        <div id="verdictBanner" class="p-6 rounded-3xl border risk-banner">
+                            <h3 id="vTitle" class="font-black italic text-lg uppercase"></h3>
+                            <p id="vDesc" class="text-xs font-medium mt-1"></p>
                         </div>
+
+                        <div class="p-5 bg-emerald-50 rounded-3xl border border-emerald-100 flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] font-bold text-emerald-600 uppercase">Honest Market Price</span>
+                                <div id="honestPrice" class="text-2xl font-black text-slate-900">₹--</div>
+                            </div>
+                        </div>
+
+                        <div id="breakdownUl" class="space-y-2"></div>
+                    </div>
+
+                    <div id="flavorView" class="hidden space-y-4">
+                        <div class="flex items-center gap-3 p-4 bg-blue-600 rounded-2xl text-white">
+                            <i data-lucide="flask-conical"></i>
+                            <div>
+                                <h4 class="text-xs font-black uppercase">FlavorDB Forensic Match</h4>
+                                <p class="text-[9px] opacity-80">Nature-identical molecular substitutes</p>
+                            </div>
+                        </div>
+                        <div id="alternativesList" class="space-y-3"></div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </main>
 
-        </main>
+    <script>
+        const API_URL = "http://127.0.0.1:8080";
 
-    <script src="script.js"></script>
-    <script>lucide.createIcons();</script>
+        function switchTab(tab) {
+            document.getElementById('reportView').classList.toggle('hidden', tab !== 'report');
+            document.getElementById('flavorView').classList.toggle('hidden', tab !== 'flavor');
+            document.getElementById('tabBtnReport').classList.toggle('active', tab === 'report');
+            document.getElementById('tabBtnFlavor').classList.toggle('active', tab === 'flavor');
+            document.getElementById('tabBtnReport').style.opacity = tab === 'report' ? "1" : "0.4";
+            document.getElementById('tabBtnFlavor').style.opacity = tab === 'flavor' ? "1" : "0.4";
+        }
+
+        async function loadMenu() {
+            try {
+                const res = await fetch(`${API_URL}/get-menu`);
+                const dishes = await res.json();
+                document.getElementById('dishSelect').innerHTML = dishes.map(d => `<option value="${d}">${d}</option>`).join('');
+            } catch (e) { console.error("Menu failed", e); }
+        }
+
+        async function analyze() {
+            const dish = document.getElementById('dishSelect').value;
+            const price = document.getElementById('priceInput').value;
+            if(!price) return alert("Paisa bhariye bhai!");
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('scanLoader').classList.remove('hidden');
+            document.getElementById('analysisContent').classList.add('hidden');
+            document.getElementById('resultTabs').classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API_URL}/analyze`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ dish_name: dish, vendor_price: parseFloat(price) })
+                });
+                const data = await res.json();
+
+                // UI Updates
+                document.getElementById('integrityVal').innerText = data.status === "SAFE" ? "92%" : "38%";
+                document.getElementById('integrityVal').className = `text-3xl font-black mt-1 ${data.status === 'SAFE' ? 'text-emerald-600' : 'text-red-600'}`;
+                document.getElementById('riskVal').innerText = data.status === "SAFE" ? "LOW" : "HIGH";
+                document.getElementById('honestPrice').innerText = "₹" + data.honest_cost;
+
+                const banner = document.getElementById('verdictBanner');
+                banner.className = `p-6 rounded-3xl border risk-banner ${data.status === 'SAFE' ? 'bg-emerald-50 border-emerald-100 text-emerald-900' : 'bg-red-50 border-red-100 text-red-900'}`;
+                document.getElementById('vTitle').innerText = data.status === 'SAFE' ? "Integrity Verified" : "Forensic Warning";
+                document.getElementById('vDesc').innerText = data.status === 'SAFE' ? "Market price matches molecular complexity." : "Price suspiciously low. Probable use of industrial fillers.";
+
+                document.getElementById('breakdownUl').innerHTML = data.breakdown.map(b => `
+                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-xs font-bold text-slate-500">${b.item}</span>
+                        <span class="text-xs font-black text-slate-900">₹${b.cost}</span>
+                    </div>
+                `).join('');
+
+                const altList = document.getElementById('alternativesList');
+                if(data.suggestions && data.suggestions.length > 0) {
+                    altList.innerHTML = data.suggestions.map(s => `
+                        <div class="p-4 bg-white border border-blue-100 rounded-xl shadow-sm hover:border-blue-500 transition-all">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[8px] font-bold text-slate-300 line-through uppercase">${s.original}</span>
+                                <span class="text-[8px] font-black text-blue-600 px-2 py-0.5 bg-blue-50 rounded">MOL-TWIN FOUND</span>
+                            </div>
+                            <div class="text-sm font-black text-slate-800">${s.substitute}</div>
+                            <div class="text-[9px] text-slate-500 italic mt-1 leading-tight">${s.science}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    altList.innerHTML = "<p class='text-center py-10 text-slate-400 text-xs'>No molecular anomalies found.</p>";
+                }
+
+                document.getElementById('scanLoader').classList.add('hidden');
+                document.getElementById('analysisContent').classList.remove('hidden');
+                document.getElementById('resultTabs').classList.remove('hidden');
+                if(data.status === "SAFE") confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+            } catch (e) {
+                document.getElementById('scanLoader').classList.add('hidden');
+                alert("Server Connection Failed. Run the python script first!");
+            }
+        }
+
+        window.onload = () => { loadMenu(); lucide.createIcons(); };
+    </script>
 </body>
 </html>

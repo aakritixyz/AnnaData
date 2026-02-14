@@ -1,141 +1,149 @@
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "http://127.0.0.1:8080";
 
-// 1. Start-up: Dropdown Loading
-window.onload = async () => {
-    const select = document.getElementById('dishSelect');
+// 1. Tab Switching (Optimized)
+function switchTab(tab) {
+    console.log(`Switching to tab: ${tab}`);
+    const reportView = document.getElementById('reportView');
+    const flavorView = document.getElementById('flavorView');
+    const btnReport = document.getElementById('tabBtnReport');
+    const btnFlavor = document.getElementById('tabBtnFlavor');
+
+    const isReport = tab === 'report';
+    
+    reportView.classList.toggle('hidden', !isReport);
+    flavorView.classList.toggle('hidden', isReport);
+    
+    btnReport.classList.toggle('active', isReport);
+    btnReport.classList.toggle('opacity-40', !isReport);
+    
+    btnFlavor.classList.toggle('active', !isReport);
+    btnFlavor.classList.toggle('opacity-40', isReport);
+}
+
+// 2. Initial Menu Load (With Debugging)
+async function loadMenu() {
+    console.log("Attempting to fetch menu from:", `${API_URL}/get-menu`);
+    const dishSelect = document.getElementById('dishSelect');
+    
     try {
-        console.log("Connecting to Annadata Forensic Engine...");
-        const res = await fetch(`${API_URL}/get-menu`);
-        if (!res.ok) throw new Error("Backend Error");
+        const response = await fetch(`${API_URL}/get-menu`);
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         
-        const dishes = await res.json();
+        const dishes = await response.json();
+        console.log("Dishes received:", dishes);
         
-        // Populate dropdown
-        select.innerHTML = dishes.map(d => 
-            `<option value="${d.id}">${d.title}</option>`
-        ).join('');
-
-        updateHint();
-    } catch (e) {
-        console.error("Backend offline:", e);
-        select.innerHTML = "<option value=''>Error loading RecipeDB</option>";
-    }
-};
-
-// 2. Hint system update (Market price estimation hint)
-function updateHint() {
-    const select = document.getElementById('dishSelect');
-    const hintText = document.getElementById('hintCost');
-    if(select.value) {
-        hintText.innerHTML = "Recipe Data Linked ✅ <span class='text-[10px] block opacity-50 text-slate-500'>Ready for molecular scan</span>";
-    } else {
-        hintText.innerText = "Select a dish to scan";
+        if (dishes.length === 0) {
+            dishSelect.innerHTML = '<option value="">No dishes found in RecipeDB</option>';
+        } else {
+            dishSelect.innerHTML = dishes.map(d => `<option value="${d}">${d}</option>`).join('');
+        }
+    } catch (e) { 
+        console.error("Critical Connection Error:", e.message);
+        dishSelect.innerHTML = '<option value="">⚠️ Server Offline (Check Python Console)</option>'; 
     }
 }
 
-// 3. Main Analyze Function
+// 3. Main Analysis Engine (Refined Logic)
 async function analyze() {
-    const recipeId = document.getElementById('dishSelect').value;
+    const dish = document.getElementById('dishSelect').value;
     const price = document.getElementById('priceInput').value;
+    
+    if(!dish || dish.includes("Offline")) return alert("Pehle server start karo bhai!");
+    if(!price || price <= 0) return alert("Menu wala asli price dalo!");
 
-    if(!price || !recipeId) {
-        alert("Bhai, pehle dish select karo aur vendor price daalo!");
-        return;
-    }
+    console.log("Analyzing Dish:", dish, "at Price:", price);
 
-    // UI States: Hide empty/results, show loader
-    document.getElementById('emptyState').classList.add('hidden');
-    document.getElementById('analysisContent').classList.add('hidden');
-    document.getElementById('scanLoader').classList.remove('hidden');
+    const loader = document.getElementById('scanLoader');
+    const content = document.getElementById('analysisContent');
+    const tabs = document.getElementById('resultTabs');
+    const empty = document.getElementById('emptyState');
+
+    // UI State: Loading
+    empty.classList.add('hidden');
+    loader.classList.remove('hidden');
+    content.classList.add('hidden');
+    tabs.classList.add('hidden');
 
     try {
         const res = await fetch(`${API_URL}/analyze`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ 
-                recipe_id: recipeId, 
+                dish_name: dish, 
                 vendor_price: parseFloat(price) 
             })
         });
 
+        if (!res.ok) throw new Error('Analysis Request Failed');
         const data = await res.json();
-        showResults(data);
+        console.log("Analysis Result Received:", data);
+
+        // 1. Update Forensic Metrics
+        let integrity = data.status === "SAFE" ? 92 : 38;
+        const integrityEl = document.getElementById('integrityVal');
+        const riskEl = document.getElementById('riskVal');
         
-    } catch (e) {
-        console.error("Audit Failed:", e);
-        alert("Integrity Engine link failed! Check if Python backend is running.");
-        resetUI();
-    }
-}
+        integrityEl.innerText = `${integrity}%`;
+        integrityEl.style.color = integrity > 70 ? '#10b981' : '#ef4444';
+        
+        riskEl.innerText = data.status === "SAFE" ? "LOW" : "HIGH";
+        riskEl.style.color = data.status === "SAFE" ? '#10b981' : '#ef4444';
+        
+        document.getElementById('honestPrice').innerText = `₹${data.honest_cost}`;
 
-// 4. Results Display Logic (Cleaned & Integrated)
-function showResults(data) {
-    document.getElementById('scanLoader').classList.add('hidden');
-    document.getElementById('analysisContent').classList.remove('hidden');
+        // 2. Verdict Banner (Real-time Feedback)
+        const banner = document.getElementById('verdictBanner');
+        const isSafe = data.status === 'SAFE';
+        
+        banner.className = `p-6 rounded-3xl border ${isSafe ? 'border-emerald-100 bg-emerald-50 text-emerald-900' : 'border-red-100 bg-red-50 text-red-900'} flex flex-col gap-2`;
+        document.getElementById('vTitle').innerText = isSafe ? "Integrity Verified" : "Forensic Warning";
+        document.getElementById('vDesc').innerText = isSafe ? "Price aligns with RecipeDB molecular density." : "Suspiciously low price. Potential industrial fillers detected.";
 
-    const banner = document.getElementById('verdictBanner');
-    const title = document.getElementById('vTitle');
-    const desc = document.getElementById('vDesc');
-    const icon = document.getElementById('vIcon');
-    const hintText = document.getElementById('hintCost');
+        // 3. FlavorDB Molecular Matches
+        const altList = document.getElementById('alternativesList');
+        const flavorTabBtn = document.getElementById('tabBtnFlavor');
 
-    // Display inflation and honest cost in the hint box
-    hintText.innerHTML = `₹${data.honest_cost} <span class="ml-2 text-[10px] px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-bold">Inflation: ${data.inflation}</span>`;
-
-    // Reset Classes
-    banner.className = "p-6 rounded-3xl flex gap-4 items-center border";
-
-    if(data.status === "SAFE") {
-        banner.classList.add("bg-emerald-50", "text-emerald-700", "border-emerald-100");
-        title.innerText = "SAFE INTEGRITY";
-        icon.innerHTML = "✓";
-        desc.innerText = data.verdict || "Price aligns with market standards.";
-        if (typeof confetti === 'function') {
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#059669', '#10b981'] });
+        if (data.suggestions && data.suggestions.length > 0) {
+            flavorTabBtn.classList.remove('hidden');
+            altList.innerHTML = data.suggestions.map(s => `
+                <div class="p-4 bg-white border border-blue-100 rounded-2xl shadow-sm hover:translate-x-1 transition-all">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-bold text-slate-300 line-through uppercase">${s.original}</span>
+                        <span class="text-[9px] font-black text-blue-600 px-2 py-0.5 bg-blue-50 rounded">MOLECULAR MATCH</span>
+                    </div>
+                    <div class="text-xs font-black text-slate-800">${s.substitute}</div>
+                    <div class="text-[9px] text-slate-500 italic mt-1 leading-tight">${s.science}</div>
+                </div>
+            `).join('');
+        } else {
+            flavorTabBtn.classList.add('hidden');
         }
-    } else if(data.status === "SUSPICIOUS") {
-        banner.classList.add("bg-amber-50", "text-amber-700", "border-amber-100");
-        title.innerText = "SUSPICIOUS MARGINS";
-        icon.innerHTML = "?";
-        desc.innerText = data.verdict || "Thin margins detected. Quality might be compromised.";
-    } else {
-        banner.classList.add("bg-red-50", "text-red-700", "border-red-100");
-        title.innerText = "ADULTERATION RISK";
-        icon.innerHTML = "!";
-        desc.innerText = data.verdict || "Price is too low. High risk of substandard ingredients.";
-    }
 
-    // Molecular Breakdown List
-    const list = document.getElementById('breakdownUl');
-    if (data.breakdown && data.breakdown.length > 0) {
-        list.innerHTML = data.breakdown.map(item => `
-            <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-emerald-200 transition-colors">
-                <span class="font-bold text-slate-600 text-xs uppercase tracking-tight">${item.item}</span>
-                <span class="font-extrabold text-slate-900">₹${item.cost}</span>
+        // 4. RecipeDB Cost Deconstruction
+        document.getElementById('breakdownUl').innerHTML = data.breakdown.map(b => `
+            <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-2xl mb-2">
+                <span class="text-[10px] font-bold text-slate-500">${b.item}</span>
+                <span class="text-[10px] font-black text-slate-900">₹${b.cost}</span>
             </div>
         `).join('');
-    } else {
-        list.innerHTML = "<p class='text-center py-4 text-slate-400 text-sm'>No high-cost markers detected.</p>";
+
+        // UI Reveal
+        loader.classList.add('hidden');
+        content.classList.remove('hidden');
+        tabs.classList.remove('hidden');
+        
+        if(isSafe) confetti({ particleCount: 150, spread: 70, origin: { y: 0.8 } });
+
+    } catch (e) { 
+        console.error("Analysis Error:", e);
+        loader.classList.add('hidden'); 
+        empty.classList.remove('hidden');
+        alert("Server Error: Python console check karo, shayad data fetch nahi hua."); 
     }
 }
 
-// 5. Utility Functions
-function resetUI() {
-    document.getElementById('scanLoader').classList.add('hidden');
-    document.getElementById('emptyState').classList.remove('hidden');
-    document.getElementById('analysisContent').classList.add('hidden');
-}
-
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-view').forEach(t => t.classList.add('hidden'));
-    const targetTab = document.getElementById(tabId);
-    if(targetTab) targetTab.classList.remove('hidden');
-
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.getElementById(`btn-${tabId}`);
-    if(activeBtn) activeBtn.classList.add('active');
-    
-    document.getElementById('current-page').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
-    
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
+// Initialization
+document.addEventListener('DOMContentLoaded', () => {
+    loadMenu();
+    if (window.lucide) lucide.createIcons();
+});
