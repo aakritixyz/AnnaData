@@ -1,10 +1,13 @@
-import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
+import pandas as pd
+import os
 
-app = FastAPI()
+# 1. PEHLE APP DEFINE KARO (Crucial fix for NameError)
+app = FastAPI(title="Annadata Forensic Engine")
 
-# Strictly adding CORS to prevent "Backend Offline" errors
+# 2. CORS MIDDLEWARE
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,86 +16,122 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- FOODOSCOPE MASTER CONFIG ---
-HEADERS = {
-    "Authorization": "Bearer GaQ3_Zc8_7PcUDumIl2_cUcMqyUzRtf-3BNeX_1vyA5uzE3O",
-    "Content-Type": "application/json"
-}
+# 3. CONFIG & API KEYS
+API_KEY = "-VLoVkZcvaCR9xhQcuJRxf_o44CEjKTub7hSQUnSItP3NxBr"
+HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 BASE_URL = "https://api.foodoscope.com/recipe2-api"
 
+# 4. MARKET INTELLIGENCE (Fixed CSV Loader)
+def get_market_intelligence():
+    try:
+        csv_path = 'Weekly Avg. Report Data Commoditywise.csv'
+        if not os.path.exists(csv_path):
+            print("⚠️ CSV file missing! Using default prices.")
+            return {"rice": {"price": 45, "trend": 0}}
+            
+        # skiprows=4 se hum headers ko skip karte hain jahan text hota hai
+        df = pd.read_csv(csv_path, skiprows=4, header=None)
+        
+        market = {}
+        for _, row in df.iterrows():
+            try:
+                # Row 0: Name, Row 2: Curr Price, Row 3: Prev Price
+                name = str(row[0]).strip().lower()
+                curr = float(row[2]) # Yahan float conversion safe rahega ab
+                prev = float(row[3]) if len(row) > 3 and pd.notnull(row[3]) else curr
+                
+                # Unit conversion: Agar '100 Kg' likha hai toh 1Kg ka price nikalo
+                unit_price = curr/100 if "100" in str(row[1]) else curr
+                inflation = ((curr - prev) / prev * 100) if prev > 0 else 0
+                
+                market[name] = {"price": unit_price, "trend": inflation}
+            except:
+                continue # Agar koi row corrupted hai toh skip karo
+        return market
+    except Exception as e:
+        print(f"❌ Critical CSV Load Error: {e}")
+        return {"rice": {"price": 45, "trend": 0}}
+
+MARKET_DATA = get_market_intelligence()
+
+# 5. ROUTES
 @app.get("/get-menu")
 async def get_menu():
-    # Fetching more recipes to show off the database
-    url = f"{BASE_URL}/recipe/recipesinfo?page=1&limit=100"
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=10).json()
-        # Filter out duplicates and empty titles
-        titles = list(set([res['Recipe_title'] for res in r['payload']['data'] if res.get('Recipe_title')]))
-        return titles
-    except Exception as e:
-        print(f"Menu Error: {e}")
-        return ["Southwestern Beef Brisket", "Sweet Honey French Bread", "Heirloom Apple Pie"]
+    async with httpx.AsyncClient() as client:
+        url = f"{BASE_URL}/recipe/recipesinfo?page=1&limit=100"
+        try:
+            r = await client.get(url, headers=HEADERS, timeout=10.0)
+            data = r.json()
+            items = data.get("payload", {}).get("data", [])
+            return [{"id": str(d.get("recipe_id")), "title": d.get("Recipe_title")} for d in items if d.get("recipe_id")]
+        except Exception as e:
+            print(f"Menu Fetch Error: {e}")
+            return [{"id": "92757", "title": "Costa Rican Stuffed Tortilla"}]
 
 @app.post("/analyze")
 async def analyze(request: dict):
-    dish_name = request.get("dish_name")
-    vendor_price = request.get("vendor_price", 0)
+    recipe_id = request.get("recipe_id")
+    vendor_price = float(request.get("vendor_price"))
 
-    try:
-        # STEP 1: Fetch Deep Metadata using the 'By Title' endpoint
-        meta_url = f"{BASE_URL}/recipe-bytitle/recipeByTitle?title={dish_name}"
-        meta_res = requests.get(meta_url, headers=HEADERS, timeout=10).json()
-        recipe = meta_res['payload']['data'][0]
-        
-        # Molecular Stats
-        calories = float(recipe.get('Calories', 300))
-        total_time = float(recipe.get('total_time', 45))
-        region = recipe.get('Region', 'Standard')
-        
-        # New Feature: Protein-Based Price Weighting
-        # Logic: High protein recipes (from Foodoscope data) must have higher honest costs
-        protein_content = float(recipe.get('Protein', 10)) 
-        protein_premium = round(protein_content * 4.5, 2) # Rs 4.5 per gram of protein
+    async with httpx.AsyncClient() as client:
+        detail_url = f"{BASE_URL}/search-recipe/{recipe_id}"
+        try:
+            res = await client.get(detail_url, headers=HEADERS)
+            data = res.json()
+            ingredients = data.get("ingredients", [])
+            
+            total_honest_cost = 0
+            breakdown = []
+            inf_tracker = []
 
-        # STEP 2: Ingredient Complexity (using flavor and utensils logic)
-        # Slow cooking or complex regional dishes cost more in labor/fuel
-        method_multiplier = 1.5 if total_time > 60 else 1.0
-        labor_fuel = round((total_time / 10) * 10 * method_multiplier, 2)
+            for ing in ingredients:
+                name = ing.get("ingredient", "").lower()
+                # Quantity extraction (handle empty strings)
+                try:
+                    qty_str = ing.get("quantity", "1")
+                    qty = float(qty_str) if qty_str else 1.0
+                except:
+                    qty = 1.0
+                
+                # Mapping logic
+                m_info = {"price": 40, "trend": 0}
+                if "oil" in name: m_info = MARKET_DATA.get("mustard oil (packed)", {"price": 175, "trend": 4.0})
+                elif any(x in name for x in ["meat", "beef", "chicken"]): m_info = MARKET_DATA.get("meat", {"price": 450, "trend": 2.0})
+                elif any(x in name for x in ["corn", "tortilla", "maize"]): m_info = MARKET_DATA.get("maize", {"price": 30, "trend": 1.0})
+                elif "tomato" in name or "cabbage" in name: m_info = MARKET_DATA.get("vegetables", {"price": 40, "trend": 5.0})
 
-        # STEP 3: The "Honest Price" Formula (Scientific Inflation Index)
-        raw_material = round((calories / 100) * 22, 2) # Rs 22 per 100kcal (Standard Material Cost)
-        
-        # Honest Total = Raw + Protein Premium + Labor/Fuel + Compliance Buffer
-        honest_total = round(raw_material + protein_premium + labor_fuel + 25, 2)
+                # Basic calculation: qty * price (serving adjustments can be added here)
+                # Hum assume kar rahe hain quantities small units mein hain
+                cost = (qty * m_info["price"]) / 10 if qty > 5 else (qty * m_info["price"])
+                total_honest_cost += cost
+                inf_tracker.append(m_info["trend"])
+                
+                if cost > 0.1:
+                    breakdown.append({"item": ing.get("ingredient"), "cost": round(cost, 2)})
 
-        # STEP 4: Adulteration Risk Logic (Strict 85% threshold)
-        # If vendor price is significantly lower than honest cost, flag for adulteration
-        status = "SAFE" if vendor_price >= (honest_total * 0.85) else "RED"
+            # Formula: Raw Cost + 45% (Fuel, Labor, Profit)
+            honest_cost = total_honest_cost * 1.45
+            avg_inflation = sum(inf_tracker)/len(inf_tracker) if inf_tracker else 0
+            
+            status = "SAFE"
+            verdict = "Market standards met."
+            if vendor_price < (honest_cost * 0.75):
+                status = "DANGER"
+                verdict = "Extreme Risk! Price is too low for authentic ingredients."
+            elif vendor_price < honest_cost:
+                status = "SUSPICIOUS"
+                verdict = "Low margins. Check for ingredient quality."
 
-        return {
-            "status": status,
-            "honest_cost": honest_total,
-            "breakdown": [
-                {"item": "Energy-Based Raw Materials", "cost": raw_material},
-                {"item": "Protein Content Integrity (Premium)", "cost": protein_premium},
-                {"item": "Thermal Energy & Prep Labor", "cost": labor_fuel},
-                {"item": "Safety & Quality Compliance", "cost": 25.0}
-            ],
-            "molecular_insights": {
-                "energy": f"{calories} kcal",
-                "protein_grade": f"{protein_content}g (High)" if protein_content > 20 else f"{protein_content}g (Standard)",
-                "method": "Artisanal / Slow-Cooked" if total_time > 60 else "Standard Prep",
-                "region": region
+            return {
+                "status": status,
+                "honest_cost": round(honest_cost, 2),
+                "breakdown": breakdown,
+                "inflation": f"{round(avg_inflation, 1)}%",
+                "verdict": verdict
             }
-        }
-    except Exception as e:
-        print(f"Analysis Error: {e}")
-        return {
-            "status": "RED", 
-            "honest_cost": 100.0, 
-            "breakdown": [{"item": "Data Unavailable (Standard Index)", "cost": 100.0}],
-            "molecular_insights": {"energy": "N/A", "protein_grade": "N/A", "method": "Standard", "region": "Unknown"}
-        }
+        except Exception as e:
+            print(f"Analysis Error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
