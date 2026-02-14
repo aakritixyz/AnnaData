@@ -1,0 +1,117 @@
+:root {
+    --primary: #059669;
+    --primary-glow: rgba(5, 150, 105, 0.15);
+    --bg-main: #f0f4f8;
+    --surface: #ffffff;
+    --text-head: #0f172a;
+    --text-body: #475569;
+    --border: #e2e8f0;
+    --danger: #ef4444;
+}
+
+body {
+    background: radial-gradient(at top left, #f8fafc, #f1f5f9);
+    color: var(--text-body);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-x: hidden;
+}
+
+/* Glass Sidebar */
+.sidebar {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-right: 1px solid var(--border);
+    width: 280px;
+    height: 100vh;
+    padding: 2rem;
+    position: sticky;
+    top: 0;
+}
+
+.logo-icon {
+    background: var(--primary);
+    color: white;
+    padding: 10px;
+    border-radius: 14px;
+    box-shadow: 0 8px 16px var(--primary-glow);
+}
+
+/* High-End Cards */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 32px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary);
+}
+
+/* Inputs & Buttons */
+.big-input, select {
+    background: #f8fafc !important;
+    border: 2px solid var(--border) !important;
+    border-radius: 20px !important;
+    padding: 1.25rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: var(--text-head) !important;
+    transition: 0.3s;
+}
+
+.big-input:focus {
+    border-color: var(--primary) !important;
+    background: white !important;
+    box-shadow: 0 0 0 4px var(--primary-glow) !important;
+}
+
+.primary-btn {
+    background: var(--text-head);
+    color: white;
+    padding: 1.25rem;
+    border-radius: 20px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    transition: 0.4s;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+}
+
+.primary-btn:hover {
+    background: var(--primary);
+    transform: scale(1.02);
+    box-shadow: 0 15px 30px var(--primary-glow);
+}
+
+/* Map & Pins */
+.map-placeholder-light {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 30px 30px;
+    height: 450px;
+    background-color: #f8fafc;
+}
+
+.pin {
+    width: 20px;
+    height: 20px;
+    background: var(--danger);
+    border: 4px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 20px var(--danger);
+    cursor: pointer;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-view.active {
+    display: block;
+    animation: fadeIn 0.5s ease forwards;
+}
