@@ -1,20 +1,72 @@
-- Project Annadata: Forensic Food Audit Engine
-Annadata is a high-integrity food analysis dashboard that cross-references market pricing with molecular flavor profiles. By integrating RecipeDB and FlavorDB APIs, the engine calculates the "Honest Cost" of a dish and detects potential adulteration or "Molecular Twins" (artificial substitutes).
+Annadata
 
-- Key Features
-Forensic Integrity Score: A dynamic algorithm that calculates food safety based on price variance.
+Food Authenticity & Price Intelligence Engine
 
-Molecular Twin Detection: Identifies lab-synthesized chemical substitutes (e.g., Margarine vs. Butter) based on the dish category.
+Annadata detects economically impossible food pricing using official recipes and real-time ingredient costs.
 
-Market Inflation Guard: Real-time simulation of operational overheads vs. vendor pricing.
+If a dish costs less than its ingredients, adulteration becomes likely. We identify that risk before it reaches the consumer.
 
-Flavor Profile Mapping: Uses the FlavorDB API to fetch specific molecular structures of ingredients.
+⸻
 
-🛠️ Tech Stack
-Backend: FastAPI (Python 3.14+)
+The Problem
 
-Frontend: HTML5, Tailwind CSS, Vanilla JavaScript
+Rising food inflation pushes vendors into a Survival vs Safety dilemma.
 
-Libraries: httpx (Async API calls), uvicorn (Server), asyncio
+When ingredient prices increase:
+	•	Quality is reduced
+	•	Synthetic fillers replace real ingredients
+	•	Unsafe shortcuts are hidden behind low prices
 
-APIs: RecipeDB (Foodoscope), FlavorDB
+Consumers cannot tell whether a cheap dish is:
+	•	Genuine value
+	•	Or economically impossible without adulteration
+
+⸻
+
+Our Solution
+
+Annadata calculates the Honest Cost of a dish in real time.
+
+Step 1: Official Recipe
+
+We fetch standardized ingredient lists and quantities.
+
+Step 2: Live Market Prices
+
+We pull current ingredient prices from verified sources.
+
+Step 3: Honest Cost Calculation
+
+We compute the minimum feasible cost to prepare the dish properly.
+
+Step 4: Risk Detection
+
+We compare vendor price vs Honest Cost and generate a:
+	•	Safe
+	•	Medium Risk
+	•	High Risk
+
+Step 5: Safe Alternatives
+
+If risk is high, we suggest natural, safe substitutes based on flavor and molecular similarity.
+
+⸻
+
+ Use Cases
+	•	City-wide food safety mapping
+	•	Real-time Safety Score during digital payments
+	• Bulk feeding systems (schools, hostels)
+	• Food inflation monitoring
+
+⸻
+
+Tech Stack
+	•	Frontend: HTML, CSS, JavaScript (Website-first, responsive)
+	•	Backend: Node.js, Express
+	•	APIs: Recipe data, Live price feeds, Flavor & molecular profiling
+
+⸻
+ Vision
+
+Annadata is not just a price checker.
+It is a preventive food safety intelligence system that uses economics to detect adulteration risk before harm occurs :)
