@@ -6,7 +6,7 @@ import asyncio
 
 app = FastAPI()
 
-# 1. CORS Fix (Taaki frontend map load kar sake)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Config - Double check your API key
+# API Config 
 API_KEY = "C5t4v6LQb7xQU1FsWioW3NHTSUPMHOM8peV9wQDAERKWmSHx"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 RECIPE_URL = "http://cosylab.iiitd.edu.in:6969/recipe2-api/recipes-calories/calories"
@@ -88,10 +88,10 @@ async def analyze(data: dict):
         ]
     }
 
-# YEH SABSE ZAROORI HAI: uvicorn se pehle define karna
+
 @app.get("/get-heatmap-data")
 async def get_heatmap_data():
-    print("Heatmap Data Requested") # Debugging ke liye terminal mein dikhega
+    print("Heatmap Data Requested") 
     return [
         {"lat": 26.8467, "lng": 80.9462, "city": "Lucknow", "risk": 0.9, "inflation": "+18%"},
         {"lat": 28.6139, "lng": 77.2090, "city": "Delhi NCR", "risk": 0.7, "inflation": "+12%"},

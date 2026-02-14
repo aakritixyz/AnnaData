@@ -3,257 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Annadata | Food Forensics Dashboard</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>Annadata | Food Forensics Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <style>
-        :root { --emerald: #10b981; --slate-900: #0f172a; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; overflow-x: hidden; }
-        .tab-btn.active { border-bottom: 3px solid var(--emerald); color: #065f46; opacity: 1; }
-        #map { height: 500px; width: 100%; z-index: 1; cursor: pointer !important; }
-        .leaflet-container { font-family: 'Plus Jakarta Sans', sans-serif !important; }
-        .sidebar-btn.active { background: #ecfdf5; color: #047857; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="flex min-h-screen">
+<body class="gov-bg text-slate-800">
 
-    <aside class="hidden lg:flex flex-col w-64 p-8 bg-white border-r border-slate-100 h-screen sticky top-0">
-        <div class="flex items-center gap-3 mb-12">
-            <div class="bg-emerald-600 p-2 rounded-xl text-white"><i data-lucide="shield-check"></i></div>
-            <h1 class="text-xl font-extrabold text-slate-900 leading-none">ANNADATA</h1>
-        </div>
-        <nav class="space-y-2">
-            <button onclick="switchView('scanner')" id="navScanner" class="sidebar-btn active w-full flex items-center gap-4 p-4 text-sm font-bold rounded-2xl transition-all">
-                <i data-lucide="microscope"></i> Integrity Scanner
-            </button>
-            <button onclick="switchView('map')" id="navMap" class="sidebar-btn w-full flex items-center gap-4 p-4 text-sm font-bold rounded-2xl text-slate-400 hover:bg-emerald-50 transition-all">
-                <i data-lucide="map"></i> State Heatmap
-            </button>
-        </nav>
-    </aside>
-
-    <main class="flex-1 p-6 lg:p-12">
-        
-        <div id="scannerView" class="space-y-8">
-            <div class="mb-10">
-                <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight">Molecular Integrity Audit</h2>
-                <p class="text-slate-500 font-medium">Predicting adulteration through inflation-linked price gaps.</p>
+    <header class="gov-header fixed top-0 w-full z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shadow-sm">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center text-white">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
             </div>
-
-            <div class="grid lg:grid-cols-2 gap-8">
-                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-6 self-start">
-                    <div class="space-y-2">
-                        <label class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Select Dish</label>
-                        <select id="dishSelect" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none"></select>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Vendor Price (₹)</label>
-                        <input type="number" id="priceInput" placeholder="Enter menu price" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
-                    </div>
-                    <button onclick="analyze()" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl hover:bg-emerald-600 transition-all shadow-lg shadow-slate-200">RUN FORENSIC SCAN</button>
-                </div>
-
-                <div id="resultCard" class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl min-h-[550px] flex flex-col overflow-hidden">
-                    <div id="emptyState" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                        <i data-lucide="scan-face" class="w-16 h-16 text-slate-200 mb-4"></i>
-                        <p class="text-slate-400 font-medium italic">Awaiting molecular deconstruction...</p>
-                    </div>
-
-                    <div id="scanLoader" class="hidden flex-1 flex flex-col items-center justify-center p-8">
-                        <div class="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Analyzing Price Variance...</p>
-                    </div>
-
-                    <div id="resultTabs" class="hidden flex border-b border-slate-100 bg-slate-50/50">
-                        <button onclick="switchTab('report')" id="tabBtnReport" class="tab-btn active flex-1 py-4 text-[10px] font-black uppercase">Forensic Report</button>
-                        <button onclick="switchTab('flavor')" id="tabBtnFlavor" class="tab-btn flex-1 py-4 text-[10px] font-black uppercase opacity-40">Adulterant Twin</button>
-                    </div>
-
-                    <div id="analysisContent" class="hidden p-8 space-y-6 flex-1 overflow-y-auto">
-                        <div id="reportView" class="space-y-6">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="p-5 bg-slate-50 rounded-3xl text-center border">
-                                    <span class="text-[9px] font-black text-slate-400 uppercase">Integrity Score</span>
-                                    <div id="integrityVal" class="text-3xl font-black mt-1">--</div>
-                                </div>
-                                <div class="p-5 bg-slate-50 rounded-3xl text-center border">
-                                    <span class="text-[9px] font-black text-slate-400 uppercase">Risk Level</span>
-                                    <div id="riskVal" class="text-3xl font-black mt-1">--</div>
-                                </div>
-                            </div>
-
-                            <div class="p-5 bg-emerald-50 rounded-3xl border border-emerald-100 flex justify-between items-center">
-                                <span class="text-[9px] font-bold text-emerald-600 uppercase">Honest Price</span>
-                                <div id="honestPrice" class="text-2xl font-black text-slate-900">₹--</div>
-                            </div>
-
-                            <div class="p-5 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl">
-                                <div class="flex items-center gap-2 mb-4 text-yellow-400">
-                                    <i data-lucide="zap" class="w-4 h-4"></i>
-                                    <span class="text-[9px] font-black uppercase tracking-widest">Nutritional Audit</span>
-                                </div>
-                                <div id="nutritionGrid" class="grid grid-cols-3 gap-2"></div>
-                            </div>
-
-                            <div id="breakdownUl" class="space-y-2"></div>
-                        </div>
-
-                        <div id="flavorView" class="hidden space-y-4">
-                            <div id="alternativesList" class="space-y-3"></div>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <h1 class="text-lg font-extrabold text-blue-900 leading-tight">ANNADATA <span class="text-orange-600">PORTAL</span></h1>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter"><i>because when price rise, honesty shouldn't fall</i></p>
             </div>
         </div>
+        <div class="hidden md:flex items-center gap-6 text-[11px] font-bold text-slate-600 uppercase">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Server: Active</span>
+            <span class="bg-blue-50 px-3 py-1 rounded border border-blue-100">Regional Node: North-1</span>
+        </div>
+    </header>
 
-        <div id="mapView" class="hidden space-y-6">
-            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
-                <div class="flex justify-between items-center mb-6">
+    <div class="flex pt-16 min-h-screen">
+        <aside class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 fixed h-full left-0 top-16 z-40">
+            <div class="p-6 space-y-1">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Navigation</p>
+                <button onclick="switchView('scanner')" id="navScanner" class="sidebar-btn active w-full flex items-center gap-3 p-3 text-sm font-bold rounded-xl transition-all">
+                    <i data-lucide="microscope" class="w-4 h-4"></i> Integrity Audit
+                </button>
+                <button onclick="switchView('map')" id="navMap" class="sidebar-btn w-full flex items-center gap-3 p-3 text-sm font-bold rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                    <i data-lucide="map-pinned" class="w-4 h-4"></i> Surveillance Map
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 lg:ml-64 p-6 lg:p-10">
+            <div id="scannerView" class="max-w-5xl mx-auto space-y-6 animate-fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                     <div>
-                        <h3 class="text-3xl font-black text-slate-900">State Risk Heatmap</h3>
-                        <p class="text-slate-500 font-medium">Hotspots where inflation triggers adulteration pressure.</p>
+                        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Molecular Integrity Audit</h2>
+                        <p class="text-sm font-medium text-slate-500">Cross-referencing vendor pricing with central commodity benchmarks.</p>
                     </div>
-                    <button onclick="switchView('scanner')" class="px-6 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-lg">Back to Scan</button>
                 </div>
-                <div id="map" class="rounded-3xl border-4 border-slate-50"></div>
+
+                <div class="grid lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-4 space-y-6">
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 class="text-xs font-black text-blue-900 uppercase mb-5 flex items-center gap-2">
+                                <i data-lucide="clipboard-list" class="w-4 h-4"></i> Audit Parameters
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="space-y-1">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Dish</label>
+                                    <select id="dishSelect" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none">
+                                        <option>Fetching menu...</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Market Price (₹)</label>
+                                    <input type="number" id="priceInput" placeholder="Enter Price" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none">
+                                </div>
+                                <button onclick="analyze()" class="w-full bg-blue-900 text-white font-black py-4 rounded-xl hover:bg-blue-800 transition-all shadow-lg flex items-center justify-center gap-2 text-sm tracking-wide">
+                                    RUN FORENSIC SCAN <i data-lucide="zap" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-8">
+                        <div id="resultCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[480px] flex flex-col relative overflow-hidden">
+                            <div id="statusBar" class="h-1.5 w-full bg-slate-100 absolute top-0 left-0"></div>
+                            
+                            <div id="emptyState" class="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                                <div class="w-16 h-16 bg-blue-50 text-blue-200 rounded-full flex items-center justify-center mb-4">
+                                    <i data-lucide="scan-face" class="w-8 h-8"></i>
+                                </div>
+                                <h4 class="text-slate-800 font-bold">System Awaiting Input</h4>
+                                <p class="text-xs text-slate-400 mt-1 max-w-[240px]">Data deconstruction will begin once audit parameters are submitted.</p>
+                            </div>
+
+                            <div id="scanLoader" class="hidden flex-1 flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                <p class="text-[10px] font-black text-blue-900 uppercase tracking-[0.2em] animate-pulse">Analyzing Price Variance</p>
+                            </div>
+
+                            <div id="analysisContent" class="hidden flex-1 flex flex-col">
+                                <div class="flex border-b border-slate-100 bg-slate-50/50">
+                                    <button onclick="switchTab('report')" id="tabBtnReport" class="tab-btn active flex-1 py-4 text-[10px] font-black uppercase tracking-widest">Audit Report</button>
+                                    <button onclick="switchTab('flavor')" id="tabBtnFlavor" class="tab-btn flex-1 py-4 text-[10px] font-black uppercase tracking-widest">Adulterant Twin</button>
+                                </div>
+                                <div class="p-6 space-y-6 overflow-y-auto">
+                                    <div id="reportView" class="space-y-6">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                <span class="text-[9px] font-black text-slate-400 uppercase">Integrity Score</span>
+                                                <div id="integrityVal" class="text-2xl font-black mt-1">--</div>
+                                            </div>
+                                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                <span class="text-[9px] font-black text-slate-400 uppercase">Risk Rating</span>
+                                                <div id="riskVal" class="text-2xl font-black mt-1">--</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                            <span class="text-[10px] font-bold text-emerald-700 uppercase">Honest Market Benchmark</span>
+                                            <div id="honestPrice" class="text-xl font-black text-slate-900">₹--</div>
+                                        </div>
+                                        <div class="bg-slate-900 rounded-2xl p-5 shadow-xl">
+                                            <p class="text-[9px] font-black text-orange-400 uppercase mb-4 tracking-widest">Nutritional Audit Metrics</p>
+                                            <div id="nutritionGrid" class="grid grid-cols-3 gap-3"></div>
+                                        </div>
+                                        <div id="breakdownUl" class="space-y-2"></div>
+                                    </div>
+                                    <div id="flavorView" class="hidden space-y-4">
+                                        <div id="alternativesList" class="space-y-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-    </main>
-
-    <script>
-        const API_URL = "http://127.0.0.1:8080";
-        let map;
-
-        function switchView(view) {
-            const scanner = document.getElementById('scannerView');
-            const mapView = document.getElementById('mapView');
-            const navScanner = document.getElementById('navScanner');
-            const navMap = document.getElementById('navMap');
-
-            if(view === 'map') {
-                scanner.classList.add('hidden');
-                mapView.classList.remove('hidden');
-                navMap.classList.add('active');
-                navScanner.classList.remove('active');
-                
-                // Fix for Leaflet rendering in hidden divs
-                setTimeout(() => {
-                    if (!map) initMap();
-                    else map.invalidateSize();
-                }, 400);
-            } else {
-                scanner.classList.remove('hidden');
-                mapView.classList.add('hidden');
-                navScanner.classList.add('active');
-                navMap.classList.remove('active');
-            }
-        }
-
-        async function initMap() {
-            map = L.map('map').setView([26.8467, 80.9462], 6);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-            try {
-                const res = await fetch(`${API_URL}/get-heatmap-data`);
-                const data = await res.json();
-                data.forEach(p => {
-                    const color = p.risk > 0.7 ? '#ef4444' : (p.risk > 0.4 ? '#f59e0b' : '#10b981');
-                    L.circle([p.lat, p.lng], { color, fillColor: color, fillOpacity: 0.5, radius: 40000 })
-                     .addTo(map)
-                     .bindPopup(`<div class="p-2"><b>${p.city}</b><br><span class="text-red-500">Inflation: ${p.inflation}</span><br>Risk: ${Math.round(p.risk*100)}%</div>`);
-                });
-            } catch (e) { console.error("Map Error", e); }
-        }
-
-        function switchTab(tab) {
-            document.getElementById('reportView').classList.toggle('hidden', tab !== 'report');
-            document.getElementById('flavorView').classList.toggle('hidden', tab !== 'flavor');
-            document.getElementById('tabBtnReport').classList.toggle('active', tab === 'report');
-            document.getElementById('tabBtnFlavor').classList.toggle('active', tab === 'flavor');
-        }
-
-        async function analyze() {
-            const dish = document.getElementById('dishSelect').value;
-            const price = document.getElementById('priceInput').value;
-            if(!price) return alert("Paisa toh dalo!");
-
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('scanLoader').classList.remove('hidden');
-            document.getElementById('analysisContent').classList.add('hidden');
-            document.getElementById('resultTabs').classList.add('hidden');
-
-            try {
-                const res = await fetch(`${API_URL}/analyze`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ dish_name: dish, vendor_price: parseFloat(price) })
-                });
-                const data = await res.json();
-
-                // Dynamic Logic
-                const ratio = parseFloat(price) / data.honest_cost;
-                let score = ratio >= 0.9 ? (85 + Math.random()*10) : (ratio >= 0.6 ? 50 + ratio*30 : 20 + ratio*20);
-                score = score.toFixed(1);
-                const color = score > 80 ? '#10b981' : (score > 50 ? '#f59e0b' : '#ef4444');
-
-                // UI Updates
-                document.getElementById('integrityVal').innerText = score + "%";
-                document.getElementById('integrityVal').style.color = color;
-                document.getElementById('riskVal').innerText = score > 80 ? "LOW" : (score > 50 ? "MEDIUM" : "HIGH");
-                document.getElementById('riskVal').style.color = color;
-                document.getElementById('honestPrice').innerText = "₹" + data.honest_cost;
-
-                // Nutrition Grid
-                document.getElementById('nutritionGrid').innerHTML = data.nutrition_impact.map(m => `
-                    <div class="p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
-                        <div class="text-[7px] font-bold text-slate-400 uppercase mb-1">${m.label}</div>
-                        <div class="text-[10px] font-black" style="color: ${m.color}">${m.value}</div>
+            <div id="mapView" class="hidden max-w-5xl mx-auto space-y-6 animate-fade-in">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-900">State Risk Heatmap</h3>
+                        <p class="text-sm font-medium text-slate-500">Regional adulteration pressure monitoring.</p>
                     </div>
-                `).join('');
-
-                // Breakdown
-                document.getElementById('breakdownUl').innerHTML = data.breakdown.map(b => `
-                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase">${b.item}</span>
-                        <span class="text-[10px] font-black">₹${b.cost}</span>
-                    </div>
-                `).join('');
-
-                // Twins
-                document.getElementById('alternativesList').innerHTML = data.suggestions.length > 0 ? data.suggestions.map(s => `
-                    <div class="p-4 bg-white border border-blue-100 rounded-xl">
-                        <div class="text-[8px] font-bold text-slate-300 line-through">${s.original}</div>
-                        <div class="text-sm font-black text-slate-800">${s.substitute}</div>
-                        <div class="text-[9px] text-slate-500 italic">${s.science}</div>
-                    </div>
-                `).join('') : "<p class='text-center py-10 text-slate-400 text-xs'>No anomalies detected.</p>";
-
-                document.getElementById('scanLoader').classList.add('hidden');
-                document.getElementById('analysisContent').classList.remove('hidden');
-                document.getElementById('resultTabs').classList.remove('hidden');
-                if(score > 80) confetti();
-
-            } catch (e) { alert("Backend offline!"); }
-        }
-
-        async function loadMenu() {
-            try {
-                const res = await fetch(`${API_URL}/get-menu`);
-                const dishes = await res.json();
-                document.getElementById('dishSelect').innerHTML = dishes.map(d => `<option value="${d}">${d}</option>`).join('');
-            } catch (e) { console.error("Menu failed"); }
-        }
-
-        window.onload = () => { loadMenu(); lucide.createIcons(); };
-    </script>
+                </div>
+                <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm h-[550px]">
+                    <div id="map" class="w-full h-full rounded-xl"></div>
+                </div>
+            </div>
+        </main>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
