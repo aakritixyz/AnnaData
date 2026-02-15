@@ -1,4 +1,4 @@
-🛡 Annadata
+🛡 **AnnaData**
 
 Food Authenticity & Price Intelligence Engine
 
